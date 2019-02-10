@@ -11,9 +11,6 @@ namespace SBSARInfo
 {
     class Program
     {
-        //TODO: add compiling features
-        static string path_automation_toolkit = @"C:\Program Files\Allegorithmic\Substance Automation Toolkit";
-
         static void Main(string[] args)
         {
             if (args.Length == 0) return;

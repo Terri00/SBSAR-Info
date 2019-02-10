@@ -6,6 +6,19 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using System.Xml;
+using System.ComponentModel;
+
+public static class ext{
+    public static T GetValue<T>(this XmlAttributeCollection dict, string key, T defaultValue = default(T))
+    {
+        if (dict[key] != null){
+            TypeConverter typeConverter = TypeDescriptor.GetConverter(typeof(T));
+            return (T)(typeConverter.ConvertFromString(dict[key].Value));
+        }
+        else
+            return defaultValue;
+    }
+}
 
 namespace SBSArchive
 {
@@ -22,13 +35,13 @@ namespace SBSArchive
         public Output(XmlNode n)
         {
             // Load output information
-            this.uid = long.Parse(n.Attributes["uid"].Value);
-            this.identifier = n.Attributes["identifier"].Value;
-            this.format = int.Parse(n.Attributes["format"].Value);
-            this.width = int.Parse(n.Attributes["width"].Value);
-            this.height = int.Parse(n.Attributes["height"].Value);
-            this.mipmaps = int.Parse(n.Attributes["mipmaps"].Value);
-            this.dynamicsize = n.Attributes["dynamicsize"].Value == "yes";
+            this.uid = n.Attributes.GetValue<long>("uid");
+            this.identifier = n.Attributes.GetValue<string>("identifier");
+            this.format = n.Attributes.GetValue<int>("format");
+            this.width = n.Attributes.GetValue<int>("width");
+            this.height = n.Attributes.GetValue<int>("height");
+            this.mipmaps = n.Attributes.GetValue<int>("mipmaps");
+            this.dynamicsize = n.Attributes.GetValue<string>("dynamicsize", "") == "yes";
         }
 
         public void printInfo(string indent = "      ")
@@ -40,6 +53,7 @@ namespace SBSArchive
                 "{0}  Height:       {4}\n" +
                 "{0}  Mipmaps:      {5}\n" +
                 "{0}  Dynamic Size: {6}",
+
                 indent,
                 this.identifier,
                 this.format, this.width, this.height, this.mipmaps, this.dynamicsize ? "yes" : "no"
@@ -59,23 +73,26 @@ namespace SBSArchive
         public Input(XmlNode n)
         {
             // Load input information
-            this.uid = long.Parse(n.Attributes["uid"].Value);
-            this.identifier = n.Attributes["identifier"].Value;
-            this.type = int.Parse(n.Attributes["type"].Value);
-            this._default = n.Attributes["default"].Value;
-            this.alteroutputs = (n.Attributes["alteroutputs"].Value.Length > 0) ? n.Attributes["alteroutputs"].Value.Split(',').ToList().Select(s => long.Parse(s)).ToArray() : new long[0]; // ew
-            this.alternodes = int.Parse(n.Attributes["alternodes"].Value);
+            this.uid = n.Attributes.GetValue<long>("uid");
+            this.identifier = n.Attributes.GetValue<string>("identifier");
+            this.type = n.Attributes.GetValue<int>("type");
+            this._default = n.Attributes.GetValue<string>("default");
+            this.alteroutputs = (n.Attributes.GetValue<string>("alteroutputs", "").Length > 0) ? 
+                n.Attributes.GetValue<string>("alteroutputs", "").Split(',').ToList().Select(s => long.Parse(s)).ToArray() : new long[0]; // ew
+
+            this.alternodes = n.Attributes.GetValue<int>("alternodes");
         }
 
         public void printInfo(string indent = "      ")
         {
             Console.WriteLine(
                 "{0}Input info [{1}]\n" +
-                "{0}  UID:              {2}\n" +
-                "{0}  type:             {3}\n" +
-                "{0}  default val:      {4}\n" +
-                "{0}  Affects outputs:  {5}\n" +
-                "{0}  Affects nodes:    {6}",
+                                        "{0}  UID:              {2}\n" +
+                                        "{0}  type:             {3}\n" +
+                (this._default!=null?   "{0}  default val:      {4}\n":"") +
+                                        "{0}  Affects outputs:  {5}\n" +
+                                        "{0}  Affects nodes:    {6}",
+
                 indent,
                 this.identifier,
                 this.uid, this.type, this._default, String.Join(", ", this.alteroutputs), this.alternodes
@@ -99,13 +116,13 @@ namespace SBSArchive
         public Graph(XmlNode n)
         {
             // Load graph information
-            this.pkgurl = n.Attributes["pkgurl"].Value;
-            this.label = n.Attributes["label"].Value;
-            this.keywords = n.Attributes["keywords"].Value.Split(';');
-            this.description = n.Attributes["description"].Value;
-            this.category = n.Attributes["category"].Value;
-            this.author = n.Attributes["author"].Value;
-            this.usertags = n.Attributes["usertag"].Value.Split(';');
+            this.pkgurl = n.Attributes.GetValue<string>("pkgurl");
+            this.label = n.Attributes.GetValue<string>("label");
+            this.keywords = n.Attributes.GetValue<string>("keywords", "").Split(';');
+            this.description = n.Attributes.GetValue<string>("description");
+            this.category = n.Attributes.GetValue<string>("category");
+            this.author = n.Attributes.GetValue<string>("author");
+            this.usertags = n.Attributes.GetValue<string>("usertag", "").Split(';');
 
             // Allocate output array
             this.outputs = new Output[int.Parse(n.SelectSingleNode("outputs").Attributes["count"].Value)];
@@ -140,12 +157,13 @@ namespace SBSArchive
         {
             Console.WriteLine(
                 "{0}Graph info [{1}]\n" +
-                "{0}  Package URL:  {2}\n" +
-                "{0}  Keywords:     {3}\n" +
-                "{0}  Description:  {4}\n" +
-                "{0}  Category:     {5}\n" +
-                "{0}  Author:       {6}\n" +
-                "{0}  Usertags:     {7}",
+                (this.pkgurl!=null?         "{0}  Package URL:  {2}\n": "") +
+                                            "{0}  Keywords:     {3}\n" +
+                (this.description!=null?    "{0}  Description:  {4}\n": "") +
+                (this.category!=null?       "{0}  Category:     {5}\n": "") +
+                (this.author!=null?         "{0}  Author:       {6}\n": "") +
+                                            "{0}  Usertags:     {7}",
+
                 indent,
                 this.label,
                 this.pkgurl, String.Join(", ", this.keywords), this.description, this.category, this.author, String.Join(", ", this.usertags)
@@ -159,7 +177,7 @@ namespace SBSArchive
 
         public double formatversion;
         public long asmuid;
-        public int cookerbuild;
+        public long cookerbuild;
         public string content;
 
         Graph[] graphs;
@@ -175,10 +193,10 @@ namespace SBSArchive
 
             // Read SBS description
             XmlNode desc = doc.GetElementsByTagName("sbsdescription")[0];
-            this.formatversion = double.Parse(desc.Attributes["formatversion"].Value);
-            this.asmuid = long.Parse(desc.Attributes["asmuid"].Value);
-            this.cookerbuild = int.Parse(desc.Attributes["cookerbuild"].Value);
-            this.content = desc.Attributes["content"].Value;
+            this.formatversion = desc.Attributes.GetValue<double>("formatversion");
+            this.asmuid = desc.Attributes.GetValue<long>("asmuid");
+            this.cookerbuild = desc.Attributes.GetValue<long>("cookerbuild");
+            this.content = desc.Attributes.GetValue<string>("content");
 
             // Allocate graph array
             this.graphs = new Graph[int.Parse(desc.SelectSingleNode("graphs").Attributes["count"].Value)];
