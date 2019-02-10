@@ -8,7 +8,10 @@ using System.IO;
 using System.Xml;
 using System.ComponentModel;
 
-public static class ext{
+
+// Yeets an attribute out of an XmlAttributeCollection, 
+// Automatically converts it to the type <T> and defaults to automatic value of <T>, or otherwise manually specified default value
+public static partial class ext{
     public static T GetValue<T>(this XmlAttributeCollection dict, string key, T defaultValue = default(T))
     {
         if (dict[key] != null){
@@ -31,6 +34,9 @@ namespace SBSArchive
         public int height;
         public int mipmaps;
         public bool dynamicsize;
+
+        // Generated
+        public Graph parentGraph;
 
         public Output(XmlNode n)
         {
@@ -59,6 +65,22 @@ namespace SBSArchive
                 this.format, this.width, this.height, this.mipmaps, this.dynamicsize ? "yes" : "no"
                 );
         }
+
+        public void renderThisToDirectory(string outputDirectory, int width, int height)
+        {
+            Directory.CreateDirectory(outputDirectory);
+
+            SBSARInfo.AutomationTools.CallRender(new SBSARInfo.RenderInfo
+            {
+                input = this.parentGraph.parentArchive.filename,
+                input_graph = this.parentGraph.pkgurl,
+                input_graph_output = this.identifier,
+
+                valueTweaks = new Dictionary<string, string>() {{ "$outputsize", String.Format( "{0},{1}", Math.Min(width, 12), Math.Min(height, 12)) }},
+
+                output_path = outputDirectory
+            });
+        }
     }
 
     public class Input
@@ -69,6 +91,9 @@ namespace SBSArchive
         public string _default;
         public long[] alteroutputs;
         public int alternodes;
+
+        // Generated
+        public Graph parentGraph;
 
         public Input(XmlNode n)
         {
@@ -113,6 +138,9 @@ namespace SBSArchive
         public Output[] outputs;
         public Input[] inputs;
 
+        // Generated
+        public SBSAR parentArchive;
+
         public Graph(XmlNode n)
         {
             // Load graph information
@@ -131,7 +159,7 @@ namespace SBSArchive
             int i = 0;
             foreach (XmlNode output in n.SelectSingleNode("outputs").SelectNodes("output"))
             {
-                this.outputs[i++] = new Output(output);
+                this.outputs[i++] = new Output(output) { parentGraph = this };
             }
 
             // Allocate input array
@@ -141,9 +169,8 @@ namespace SBSArchive
             i = 0;
             foreach (XmlNode input in n.SelectSingleNode("inputs").SelectNodes("input"))
             {
-                this.inputs[i++] = new Input(input);
+                this.inputs[i++] = new Input(input) { parentGraph = this };
             }
-
         }
 
         // Get output by its UID
@@ -169,6 +196,21 @@ namespace SBSArchive
                 this.pkgurl, String.Join(", ", this.keywords), this.description, this.category, this.author, String.Join(", ", this.usertags)
                 );
         }
+
+        public void renderThisToDirectory(string outputDirectory, int width, int height)
+        {
+            Directory.CreateDirectory(outputDirectory);
+
+            SBSARInfo.AutomationTools.CallRender(new SBSARInfo.RenderInfo
+            {
+                input = this.parentArchive.filename,
+                input_graph = this.pkgurl,
+
+                valueTweaks = new Dictionary<string, string>() { { "$outputsize", String.Format("{0},{1}", Math.Min(width, 12), Math.Min(height, 12)) } },
+
+                output_path = outputDirectory
+            });
+        }
     }
 
     public class SBSAR
@@ -180,7 +222,7 @@ namespace SBSArchive
         public long cookerbuild;
         public string content;
 
-        Graph[] graphs;
+        public Graph[] graphs;
 
         /// <summary> Load sbsar from XML document </summary>
         /// <param name="filename">XML File</param>
@@ -205,7 +247,7 @@ namespace SBSArchive
             int i = 0;
             foreach (XmlNode graph in desc.SelectSingleNode("graphs").SelectNodes("graph"))
             {
-                this.graphs[i++] = new Graph(graph);
+                this.graphs[i++] = new Graph(graph) { parentArchive = this };
             }
         }
 
@@ -219,6 +261,7 @@ namespace SBSArchive
             Directory.CreateDirectory(temp_folder);
 
             // Substance archives are compressed with LZMA, use 7zip to extract
+            //TODO: Do this in memory instead of caching it.
             var proc = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -245,6 +288,7 @@ namespace SBSArchive
             if (xmlDocuments.Count() > 1) Console.WriteLine("Warning: More than one .xml files found, using first as archive");
 
             SBSAR file = SBSAR.fromXMLDocument(xmlDocuments[0]);
+            file.filename = Directory.GetCurrentDirectory() + "/" + filename;
             Directory.Delete(temp_folder, true);
             return file;
         }

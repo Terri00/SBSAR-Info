@@ -18,6 +18,18 @@ namespace SBSARInfo
 
             SBSAR file = SBSAR.fromSBSARPackage(args[0]);
             file.printFullInfo(false);
+
+            /*
+            args = new string[] { "wood_cedar_white.sbsar" };
+
+            if (args.Length == 0) return;
+            if (Path.GetExtension(args[0]) != ".sbsar") { Console.WriteLine("Not a substance archive file"); return; }
+
+            SBSAR file = SBSAR.fromSBSARPackage(args[0]);
+            //file.graphs[0].outputs[0].renderThisToDirectory("testD", 11, 11);
+            file.graphs[0].renderThisToDirectory("testD", 11, 11);
+
+            Console.ReadLine();*/
         }
     }
 }
