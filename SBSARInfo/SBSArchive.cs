@@ -81,6 +81,20 @@ namespace SBSArchive
                 output_path = outputDirectory
             });
         }
+
+        public void renderThisToDirectory(string outputDirectory)
+        {
+            Directory.CreateDirectory(outputDirectory);
+
+            SBSARInfo.AutomationTools.CallRender(new SBSARInfo.RenderInfo
+            {
+                input = this.parentGraph.parentArchive.filename,
+                input_graph = this.parentGraph.pkgurl,
+                input_graph_output = this.identifier,
+
+                output_path = outputDirectory
+            });
+        }
     }
 
     public class Input
@@ -201,12 +215,28 @@ namespace SBSArchive
         {
             Directory.CreateDirectory(outputDirectory);
 
+            SBSARInfo.RenderInfo info = new SBSARInfo.RenderInfo
+            {
+                input = this.parentArchive.filename,
+                input_graph = this.pkgurl,
+
+                valueTweaks = new Dictionary<string, string>() { { "$outputsize", String.Format("{0},{1}", Math.Min(width, 12), Math.Min(height, 12)) } },
+
+
+
+                output_path = outputDirectory
+            };
+
+            Console.WriteLine(info.generateCMDLArgs());
+
             SBSARInfo.AutomationTools.CallRender(new SBSARInfo.RenderInfo
             {
                 input = this.parentArchive.filename,
                 input_graph = this.pkgurl,
 
                 valueTweaks = new Dictionary<string, string>() { { "$outputsize", String.Format("{0},{1}", Math.Min(width, 12), Math.Min(height, 12)) } },
+
+                
 
                 output_path = outputDirectory
             });
@@ -257,7 +287,7 @@ namespace SBSArchive
         public static SBSAR fromSBSARPackage(string filename, bool muteLZMA = true)
         {
             string temp_guid = Guid.NewGuid().ToString(); // Create an id for temporary files
-            string temp_folder = String.Format(@"\temp\{0}\", temp_guid); // Create temporary folder
+            string temp_folder = String.Format(Directory.GetCurrentDirectory() + @"\temp\{0}\", temp_guid); // Create temporary folder
             Directory.CreateDirectory(temp_folder);
 
             // Substance archives are compressed with LZMA, use 7zip to extract
@@ -267,7 +297,7 @@ namespace SBSArchive
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "7z.exe",
-                    Arguments = String.Format("x {0} -y -o{1}", filename, temp_folder),
+                    Arguments = String.Format("x \"{0}\" -y -o{1}", filename, temp_folder),
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -280,6 +310,7 @@ namespace SBSArchive
             proc.Start();
             proc.BeginOutputReadLine();
             proc.WaitForExit();
+            proc.Close();
 
             // Load SBSAR file from found XML document
             string[] xmlDocuments = Directory.GetFiles(temp_folder, "*.xml", SearchOption.AllDirectories);
@@ -288,7 +319,7 @@ namespace SBSArchive
             if (xmlDocuments.Count() > 1) Console.WriteLine("Warning: More than one .xml files found, using first as archive");
 
             SBSAR file = SBSAR.fromXMLDocument(xmlDocuments[0]);
-            file.filename = Directory.GetCurrentDirectory() + "/" + filename;
+            file.filename = filename;
             Directory.Delete(temp_folder, true);
             return file;
         }

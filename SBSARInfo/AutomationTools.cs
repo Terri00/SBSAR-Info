@@ -2,30 +2,31 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public static partial class ext
-{
-    public static string extendFlag(this string s, string flag, bool value)
-    {
-        if (value) s += "-" + flag + " ";
-
-        return s;
-    }
-
-    public static string extendArg(this string s, string arg, object value)
-    {
-        if (value == null) return s;
-        s += "--" + arg + " \"" + value + "\" ";
-
-        return s;
-    }
-}
-
 namespace SBSARInfo
 {
+    public static partial class ext
+    {
+        public static string extendFlag(this string s, string flag, bool value)
+        {
+            if (value) s += "-" + flag + " ";
+
+            return s;
+        }
+
+        public static string extendArg(this string s, string arg, object value)
+        {
+            if (value == null) return s;
+            s += "--" + arg + " \"" + value + "\" ";
+
+            return s;
+        }
+    }
+
     public sealed class RenderInfo
     {
         public bool quiet = false;
@@ -91,6 +92,20 @@ namespace SBSARInfo
     {
         static string path_toolkit_root = @"C:\Program Files\Allegorithmic\Substance Automation Toolkit\";
 
+        //Checks the automation toolkit is propperly installed
+        public static bool checkLinks(){
+            bool success = true;
+
+            Console.Write("Checking automation toolkit\t");
+            if (Directory.Exists(path_toolkit_root)) Console.Write("SUCCESS\n");
+            else { Console.Write("FAILED\n"); success = false; }
+
+            Console.Write("Checking sbsrender.exe\t");
+            if (File.Exists(path_toolkit_root + "sbsrender.exe")) Console.Write("SUCCESS\n");
+            else { Console.Write("FAILED\n"); success = false; }
+
+            return success;
+        }
 
         public static void CallRender(RenderInfo info)
         {
@@ -113,6 +128,7 @@ namespace SBSARInfo
             proc.Start();
             proc.BeginOutputReadLine();
             proc.WaitForExit();
+            proc.Close();
 
             Console.WriteLine("Done");
         }
