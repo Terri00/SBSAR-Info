@@ -1,5 +1,5 @@
 # SBSAR-Info
-Gets some information from Substance Archive files in C#, an alternative to the Allegorithmic python interface. 
+Gets some information from Substance Archive files in C#, an alternative to the Allegorithmic python/cmd interface. 
 
 It is getting the info by itself, by decompressing and extracting the .xml files inside the archive. Meaning you don't need the python library to write tools in C#.
 
