@@ -14,3 +14,5 @@ It takes the first argument on the command line as the path to the materials fol
 
 Demonstration:
 https://www.youtube.com/watch?v=sqCZgbNo5Fs
+
+Download a test build of this: http://harrygodden.com/rs/file.php?i=SBSARSourceEngine-v0.0.1.zip
